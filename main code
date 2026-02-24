@@ -1,0 +1,101 @@
+import os
+
+base = "/kaggle/input/datasets/ayushaw1/dataset-license-plate-recognition-1"
+print(os.listdir(base))
+
+train_path = base + "/train"
+print(os.listdir(train_path))
+// output ['Scenario-A', 'Scenario-B']
+
+
+import os
+
+def get_all_images(root):
+    image_paths = []
+    for root_dir, dirs, files in os.walk(root):
+        for file in files:
+            if file.lower().endswith(('.jpg', '.png', '.jpeg')):
+                image_paths.append(os.path.join(root_dir, file))
+    return image_paths
+
+images = get_all_images(train_path)
+print("Total images:", len(images))
+print(images[:5])
+//output Total images: 200000
+
+!pip install easyocr -q
+
+import easyocr
+import cv2
+from tqdm import tqdm
+
+reader = easyocr.Reader(['en'])
+
+results = []
+
+for path in tqdm(images[:200]):  # start small
+    img = cv2.imread(path)
+
+    # Upscale for low-res
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
+    text = reader.readtext(img, detail=0)
+    plate = "".join(text)
+
+    results.append((path, plate))
+
+results[:10]
+//output 100%|██████████| 200/200 [00:07<00:00, 27.88it/s]
+
+import pandas as pd
+
+df = pd.DataFrame(results, columns=["image", "prediction"])
+df.to_csv("/kaggle/working/submission.csv", index=False)
+
+import os
+os.listdir("/kaggle/working")
+//output ['submission.csv', '.virtual_documents']
+
+import easyocr, cv2, pandas as pd
+from tqdm import tqdm
+
+reader = easyocr.Reader(['en'])
+results = []
+
+for path in tqdm(images):   # ❌ removed [:100]
+    img = cv2.imread(path)
+
+    if img is None:
+        continue
+
+    img = cv2.resize(img, None, fx=2, fy=2)
+    text = "".join(reader.readtext(img, detail=0))
+    results.append((path, text))
+
+# Save full results
+df = pd.DataFrame(results, columns=["image", "prediction"])
+df.to_csv("/kaggle/working/submission_full.csv", index=False)
+
+print("DONE FULL DATASET ✅")
+//output 100%|██████████| 200000/200000 [1:26:40<00:00, 38.46it/s]
+DONE FULL DATASET ✅
+
+import os
+os.listdir("/kaggle/working")
+//output ['submission.csv', 'submission_full.csv', '.virtual_documents']
+
+import pandas as pd
+import re
+
+df = pd.read_csv("/kaggle/working/submission.csv")
+
+def clean_plate(text):
+    text = str(text).upper()
+    text = re.sub(r'[^A-Z0-9]', '', text)
+    return text
+
+df["prediction"] = df["prediction"].apply(clean_plate)
+df.to_csv("/kaggle/working/submission_clean.csv", index=False)
+
+print("Saved cleaned file!")
+//output Saved cleaned file!
